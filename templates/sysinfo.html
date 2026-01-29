@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}System Information{% endblock %}
+
+{% block content %}
+<h1>System Information</h1>
+
+<div class="info-grid">
+    <div class="info-card">
+        <h3>Host</h3>
+        <p>{{ hostname }}</p>
+    </div>
+    <div class="info-card">
+        <h3>OS</h3>
+        <p>{{ os }}</p>
+    </div>
+    <div class="info-card">
+        <h3>Kernel</h3>
+        <p>{{ kernel }}</p>
+    </div>
+    <div class="info-card">
+        <h3>CPU</h3>
+        <p>{{ cpu_count }} cores</p>
+    </div>
+    <div class="info-card">
+        <h3>Memory</h3>
+        <p>{{ memory_display }}</p>
+    </div>
+</div>
+{% endblock %}
