@@ -55,6 +55,7 @@ async fn main() {
         .route("/about", get(routes::home::about))
         .route("/time", get(routes::time::time))
         .route("/sysinfo", get(routes::sysinfo::index))
+        .route("/users", get(routes::users::list_users))
         .route(
             "/login",
             get(routes::auth::login_page).post(routes::auth::login),
