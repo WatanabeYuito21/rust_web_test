@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>テキスト変換ツール - Dashboard</title>
+        <link rel="stylesheet" href="/static/style.css">
+    </head>
+    <body>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/sysinfo">System Info</a>
+            <a href="/users">Users</a>
+            <a href="/crypto">Crypto</a>
+            <a href="/password-gen">Password Gen</a>
+            <a href="/text-tools">Text Tools</a>
+            <a href="/profile">Profile</a>
+            <a href="/about">About</a>
+            <a href="/logout">Logout</a>
+        </nav>
+
+        <main>
+            <h1>テキスト変換ツール</h1>
+            <p>ようこそ、{{ username }}さん！</p>
+
+            <form action="/text-tools/process" method="post">
+                <div style="margin-bottom: 15px;">
+                    <label for="operation">操作を選択:</label>
+                    <select id="operation" name="operation" required>
+                        <option value="base64_encode">Base64 エンコード</option>
+                        <option value="base64_decode">Base64 デコード</option>
+                        <option value="url_encode">URL エンコード</option>
+                        <option value="url_decode">URL デコード</option>
+                        <option value="sha256">SHA-256 ハッシュ</option>
+                        <option value="sha512">SHA-512 ハッシュ</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label for="input_text">入力テキスト:</label>
+                    <textarea id="input_text" name="input_text" rows="6" style="width: 100%; max-width: 600px;" required></textarea>
+                </div>
+
+                <button type="submit">変換</button>
+            </form>
+
+            {% if show_error %}
+            <div style="margin-top: 30px; padding: 20px; background-color: #ffebee; border-radius: 5px; color: #c62828;">
+                <h2>エラー:</h2>
+                <p>{{ error }}</p>
+            </div>
+            {% endif %}
+
+            {% if show_result %}
+            <div style="margin-top: 30px; padding: 20px; background-color: #f0f0f0; border-radius: 5px;">
+                <h2>結果:</h2>
+                <div style="font-family: monospace; padding: 10px; background-color: white; border: 1px solid #ccc; border-radius: 3px; word-break: break-all; white-space: pre-wrap;">{{ result }}</div>
+                <button onclick="navigator.clipboard.writeText(`{{ result }}`)" style="margin-top: 10px;">
+                    クリップボードにコピー
+                </button>
+            </div>
+            {% endif %}
+        </main>
+    </body>
+</html>
