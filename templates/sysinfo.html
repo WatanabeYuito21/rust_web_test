@@ -8,23 +8,43 @@
 <div class="info-grid">
     <div class="info-card">
         <h3>Host</h3>
-        <p>{{ hostname }}</p>
+        <p id="hostname">{{ hostname }}</p>
     </div>
     <div class="info-card">
         <h3>OS</h3>
-        <p>{{ os }}</p>
+        <p id="os">{{ os }}</p>
     </div>
     <div class="info-card">
         <h3>Kernel</h3>
-        <p>{{ kernel }}</p>
+        <p id="kernel">{{ kernel }}</p>
     </div>
     <div class="info-card">
         <h3>CPU</h3>
-        <p>{{ cpu_count }} cores</p>
+        <p id="cpu"><span id="cpu_count">{{ cpu_count }}</span> cores</p>
     </div>
     <div class="info-card">
         <h3>Memory</h3>
-        <p>{{ memory_display }}</p>
+        <p id="memory">{{ memory_display }}</p>
     </div>
 </div>
+
+<script>
+    const eventSource = new EventSource('/sysinfo/live');
+
+    eventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+
+        document.getElementById('hostname').textContent = data.hostname;
+        document.getElementById('os').textContent = data.os;
+        document.getElementById('kernel').textContent = data.kernel;
+        document.getElementById('cpu_count').textContent = data.cpu_count;
+
+        const memoryText = `${data.used_memory_gb.toFixed(1)} / ${data.total_memory_gb.toFixed(1)} GB (${data.memory_percent.toFixed(0)}%)`;
+        document.getElementById('memory').textContent = memoryText;
+    };
+
+    eventSource.onerror = function(error) {
+        console.error('EventSource failed:', error);
+    };
+</script>
 {% endblock %}
