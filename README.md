@@ -6,7 +6,9 @@ Axumフレームワークを使用したRust製のウェブダッシュボード
 
 - **複数アカウント対応の認証システム**（ログイン/ログアウト）
 - MySQLデータベースによるユーザー管理
-- システム情報表示
+- **ユーザー一覧表示**
+- **暗号化/復号化ツール**（AES-256-GCM、パスワードベース）
+- システム情報表示（リアルタイム更新対応）
 - 現在時刻表示
 - セッション管理
 
@@ -17,8 +19,10 @@ Axumフレームワークを使用したRust製のウェブダッシュボード
 - **Tokio** - 非同期ランタイム
 - **Askama** - テンプレートエンジン
 - **SQLx** - MySQLデータベース接続
-- **Argon2** - パスワードハッシュ
+- **Argon2** - パスワードハッシュ、キー導出
+- **AES-GCM** - AES-256-GCM暗号化
 - **tower-sessions** - セッション管理
+- **sysinfo** - システム情報取得
 
 ## 必要条件
 
@@ -104,7 +108,9 @@ cargo run --bin hash
 │       ├── auth.rs      # 認証関連
 │       ├── home.rs      # ホームページ
 │       ├── sysinfo.rs   # システム情報
-│       └── time.rs      # 時刻表示
+│       ├── time.rs      # 時刻表示
+│       ├── users.rs     # ユーザー一覧
+│       └── crypto.rs    # 暗号化/復号化ツール
 ├── static/
 │   └── style.css        # スタイルシート
 └── templates/           # Askamaテンプレート
@@ -113,6 +119,8 @@ cargo run --bin hash
     ├── about.html
     ├── login.html
     ├── sysinfo.html
+    ├── users.html
+    ├── crypto.html
     └── partials/
         └── time.html
 ```
@@ -125,6 +133,11 @@ cargo run --bin hash
 | `/about` | GET | アバウトページ |
 | `/time` | GET | 現在時刻 |
 | `/sysinfo` | GET | システム情報 |
+| `/sysinfo/live` | GET | システム情報（リアルタイム更新） |
+| `/users` | GET | ユーザー一覧 |
+| `/crypto` | GET | 暗号化/復号化ツール |
+| `/crypto/encrypt` | POST | テキストを暗号化 |
+| `/crypto/decrypt` | POST | テキストを復号化 |
 | `/login` | GET/POST | ログイン |
 | `/logout` | GET | ログアウト |
 
