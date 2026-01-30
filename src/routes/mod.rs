@@ -1,6 +1,9 @@
 pub mod auth;
 pub mod crypto;
 pub mod home;
+pub mod password_gen;
+pub mod profile;
 pub mod sysinfo;
+pub mod text_tools;
 pub mod time;
 pub mod users;

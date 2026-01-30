@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>プロフィール - Dashboard</title>
+        <link rel="stylesheet" href="/static/style.css">
+    </head>
+    <body>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/sysinfo">System Info</a>
+            <a href="/users">Users</a>
+            <a href="/crypto">Crypto</a>
+            <a href="/password-gen">Password Gen</a>
+            <a href="/text-tools">Text Tools</a>
+            <a href="/profile">Profile</a>
+            <a href="/about">About</a>
+            <a href="/logout">Logout</a>
+        </nav>
+
+        <main>
+            <h1>ユーザープロフィール</h1>
+            <p>ようこそ、{{ username }}さん！</p>
+
+            {% if show_success %}
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #e8f5e9; border-radius: 5px; color: #2e7d32;">
+                {{ success_message }}
+            </div>
+            {% endif %}
+
+            {% if show_error %}
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #ffebee; border-radius: 5px; color: #c62828;">
+                {{ error_message }}
+            </div>
+            {% endif %}
+
+            <div style="margin-bottom: 40px;">
+                <h2>プロフィール情報を編集</h2>
+                <form action="/profile/update" method="post">
+                    <div style="margin-bottom: 15px;">
+                        <label for="email">メールアドレス:</label>
+                        <input type="email" id="email" name="email" value="{{ email }}" style="width: 100%; max-width: 400px;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label for="full_name">フルネーム:</label>
+                        <input type="text" id="full_name" name="full_name" value="{{ full_name }}" style="width: 100%; max-width: 400px;">
+                    </div>
+
+                    <button type="submit">プロフィールを更新</button>
+                </form>
+            </div>
+
+            <div style="margin-bottom: 40px; padding-top: 20px; border-top: 2px solid #ccc;">
+                <h2>パスワード変更</h2>
+                <form action="/profile/change-password" method="post">
+                    <div style="margin-bottom: 15px;">
+                        <label for="current_password">現在のパスワード:</label>
+                        <input type="password" id="current_password" name="current_password" required style="width: 100%; max-width: 400px;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label for="new_password">新しいパスワード (8文字以上):</label>
+                        <input type="password" id="new_password" name="new_password" required minlength="8" style="width: 100%; max-width: 400px;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label for="confirm_password">新しいパスワード (確認):</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required minlength="8" style="width: 100%; max-width: 400px;">
+                    </div>
+
+                    <button type="submit">パスワードを変更</button>
+                </form>
+            </div>
+        </main>
+    </body>
+</html>

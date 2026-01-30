@@ -13,9 +13,11 @@ pub struct AppState {
     pub db: MySqlPool,
 }
 
+const SESSION_USER_KEY: &str = "user";
+
 async fn auth_middleware(
     session: tower_sessions::Session,
-    request: Request,
+    mut request: Request,
     next: Next,
 ) -> Result<Response, Redirect> {
     let path = request.uri().path();
@@ -25,6 +27,10 @@ async fn auth_middleware(
     }
 
     if routes::auth::is_authenticated(&session).await {
+        // セッションからユーザー名を取得してExtensionに追加
+        if let Ok(Some(username)) = session.get::<String>(SESSION_USER_KEY).await {
+            request.extensions_mut().insert(username);
+        }
         Ok(next.run(request).await)
     } else {
         Err(Redirect::to("/login"))
@@ -60,6 +66,13 @@ async fn main() {
         .route("/crypto", get(routes::crypto::index))
         .route("/crypto/encrypt", axum::routing::post(routes::crypto::encrypt))
         .route("/crypto/decrypt", axum::routing::post(routes::crypto::decrypt))
+        .route("/password-gen", get(routes::password_gen::show_password_gen))
+        .route("/password-gen/generate", axum::routing::post(routes::password_gen::generate_password))
+        .route("/text-tools", get(routes::text_tools::show_text_tools))
+        .route("/text-tools/process", axum::routing::post(routes::text_tools::process_text))
+        .route("/profile", get(routes::profile::show_profile))
+        .route("/profile/update", axum::routing::post(routes::profile::update_profile))
+        .route("/profile/change-password", axum::routing::post(routes::profile::change_password))
         .route(
             "/login",
             get(routes::auth::login_page).post(routes::auth::login),
