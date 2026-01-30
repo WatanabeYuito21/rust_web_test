@@ -31,15 +31,22 @@ pub async fn login(
     session: Session,
     Form(form): Form<LoginForm>,
 ) -> Result<Redirect, LoginTemplate> {
+    eprintln!("Login attempt for user: {}", form.username);
+
     // データベースからユーザーを取得
     let user = match db::get_user_by_username(&state.db, &form.username).await {
-        Ok(Some(user)) => user,
+        Ok(Some(user)) => {
+            eprintln!("User found in database: {}", form.username);
+            user
+        }
         Ok(None) => {
+            eprintln!("User not found: {}", form.username);
             return Err(LoginTemplate {
                 error: Some("ユーザー名またはパスワードが間違っています".into()),
             });
         }
-        Err(_) => {
+        Err(e) => {
+            eprintln!("Database error: {:?}", e);
             return Err(LoginTemplate {
                 error: Some("データベースエラーが発生しました".into()),
             });
@@ -57,12 +64,21 @@ pub async fn login(
         .unwrap_or(false);
 
     if is_valid {
-        session
-            .insert(SESSION_USER_KEY, &form.username)
-            .await
-            .unwrap();
-        Ok(Redirect::to("/"))
+        eprintln!("Password valid for user: {}", form.username);
+        match session.insert(SESSION_USER_KEY, &form.username).await {
+            Ok(_) => {
+                eprintln!("Session created successfully for user: {}", form.username);
+                Ok(Redirect::to("/"))
+            }
+            Err(e) => {
+                eprintln!("Failed to create session: {:?}", e);
+                Err(LoginTemplate {
+                    error: Some("セッション作成に失敗しました".into()),
+                })
+            }
+        }
     } else {
+        eprintln!("Invalid password for user: {}", form.username);
         Err(LoginTemplate {
             error: Some("ユーザー名またはパスワードが間違っています".into()),
         })

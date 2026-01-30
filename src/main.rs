@@ -49,7 +49,8 @@ async fn main() {
 
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
-        .with_secure(false); // HTTPでもセッションクッキーを送信可能にする
+        .with_secure(false) // HTTPでもセッションクッキーを送信可能にする
+        .with_same_site(tower_sessions::cookie::SameSite::Lax); // クロスサイトリクエストでも送信可能に
 
     let app = Router::new()
         .route("/", get(routes::home::index))
