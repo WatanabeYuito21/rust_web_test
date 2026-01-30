@@ -48,7 +48,8 @@ async fn main() {
     };
 
     let session_store = MemoryStore::default();
-    let session_layer = SessionManagerLayer::new(session_store);
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false); // HTTPでもセッションクッキーを送信可能にする
 
     let app = Router::new()
         .route("/", get(routes::home::index))
