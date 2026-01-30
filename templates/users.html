@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}ユーザー一覧 - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>ユーザー一覧</h1>
+
+    <div class="users-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ユーザー名</th>
+                    <th>作成日時</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if users.is_empty() %}
+    <p class="no-users">登録されているユーザーはいません。</p>
+    {% endif %}
+
+    <div class="info-box">
+        <h3>ユーザー管理</h3>
+        <p>新しいユーザーを追加するには、以下のコマンドを実行してください：</p>
+        <pre><code>cargo run --bin add_user</code></pre>
+    </div>
+</div>
+{% endblock %}

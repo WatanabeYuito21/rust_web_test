@@ -1,10 +1,12 @@
 use argon2::Argon2;
 use askama::Template;
 use askama_web::WebTemplate;
-use axum::{Form, response::Redirect};
+use axum::{Form, response::Redirect, extract::State};
 use password_hash::{PasswordHash, PasswordVerifier};
 use serde::Deserialize;
 use tower_sessions::Session;
+use crate::AppState;
+use crate::db;
 
 const SESSION_USER_KEY: &str = "user";
 
@@ -25,21 +27,34 @@ pub async fn login_page() -> LoginTemplate {
 }
 
 pub async fn login(
+    State(state): State<AppState>,
     session: Session,
     Form(form): Form<LoginForm>,
 ) -> Result<Redirect, LoginTemplate> {
-    let username = std::env::var("ADMIN_USERNAME").unwrap_or_else(|_| "admin".into());
-    let password_hash = std::env::var("ADMIN_PASSWORD_HASH").unwrap_or_default();
+    // データベースからユーザーを取得
+    let user = match db::get_user_by_username(&state.db, &form.username).await {
+        Ok(Some(user)) => user,
+        Ok(None) => {
+            return Err(LoginTemplate {
+                error: Some("ユーザー名またはパスワードが間違っています".into()),
+            });
+        }
+        Err(_) => {
+            return Err(LoginTemplate {
+                error: Some("データベースエラーが発生しました".into()),
+            });
+        }
+    };
 
-    let is_valid = form.username == username
-        && PasswordHash::new(&password_hash)
-            .ok()
-            .map(|hash| {
-                Argon2::default()
-                    .verify_password(form.password.as_bytes(), &hash)
-                    .is_ok()
-            })
-            .unwrap_or(false);
+    // パスワードを検証
+    let is_valid = PasswordHash::new(&user.password_hash)
+        .ok()
+        .map(|hash| {
+            Argon2::default()
+                .verify_password(form.password.as_bytes(), &hash)
+                .is_ok()
+        })
+        .unwrap_or(false);
 
     if is_valid {
         session
