@@ -54,7 +54,8 @@ async fn main() {
     };
 
     let session_store = MemoryStore::default();
-    let session_layer = SessionManagerLayer::new(session_store);
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_same_site(tower_sessions::cookie::SameSite::Lax);
 
     let app = Router::new()
         .route("/", get(routes::home::index))

@@ -25,6 +25,7 @@ pub async fn get_user_by_username(pool: &MySqlPool, username: &str) -> Result<Op
     Ok(user)
 }
 
+#[allow(dead_code)]
 pub async fn get_user_by_id(pool: &MySqlPool, user_id: i32) -> Result<Option<User>, sqlx::Error> {
     let user = sqlx::query_as::<_, User>(
         "SELECT id, username, password_hash, email, full_name FROM users WHERE id = ?"
@@ -36,6 +37,7 @@ pub async fn get_user_by_id(pool: &MySqlPool, user_id: i32) -> Result<Option<Use
     Ok(user)
 }
 
+#[allow(dead_code)]
 pub async fn create_user(pool: &MySqlPool, username: &str, password_hash: &str) -> Result<User, sqlx::Error> {
     let result = sqlx::query(
         "INSERT INTO users (username, password_hash) VALUES (?, ?)"

@@ -57,10 +57,22 @@ pub async fn login(
         .unwrap_or(false);
 
     if is_valid {
-        session
-            .insert(SESSION_USER_KEY, &form.username)
-            .await
-            .unwrap();
+        // セッションにユーザー名を保存
+        if let Err(e) = session.insert(SESSION_USER_KEY, &form.username).await {
+            eprintln!("セッション保存エラー: {:?}", e);
+            return Err(LoginTemplate {
+                error: Some("セッションの保存に失敗しました".into()),
+            });
+        }
+
+        // セッションを確実に保存
+        if let Err(e) = session.save().await {
+            eprintln!("セッション永続化エラー: {:?}", e);
+            return Err(LoginTemplate {
+                error: Some("セッションの永続化に失敗しました".into()),
+            });
+        }
+
         Ok(Redirect::to("/"))
     } else {
         Err(LoginTemplate {

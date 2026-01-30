@@ -9,8 +9,6 @@ use serde::Deserialize;
 use tower_sessions::Session;
 use crate::{AppState, db};
 
-const SESSION_USER_KEY: &str = "user";
-
 #[derive(Template)]
 #[template(path = "profile.html")]
 struct ProfileTemplate {
