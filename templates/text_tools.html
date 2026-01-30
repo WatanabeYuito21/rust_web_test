@@ -53,7 +53,7 @@
 
             {% if show_result %}
             <div style="margin-top: 30px; padding: 20px; background-color: #f0f0f0; border-radius: 5px;">
-                <h2>結果:</h2>
+                <h2 style="color:#000;">結果:</h2>
                 <div style="font-family: monospace; padding: 10px; background-color: white; color: #000; border: 1px solid #ccc; border-radius: 3px; word-break: break-all; white-space: pre-wrap;">{{ result }}</div>
                 <button onclick="navigator.clipboard.writeText(`{{ result }}`)" style="margin-top: 10px;">
                     クリップボードにコピー
