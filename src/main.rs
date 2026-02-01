@@ -57,6 +57,7 @@ async fn main() {
         .route("/sysinfo", get(routes::sysinfo::index))
         .route("/sysinfo/live", get(routes::sysinfo::live))
         .route("/users", get(routes::users::list_users))
+        .route("/audit", get(routes::audit::list_audit_logs))
         .route("/crypto", get(routes::crypto::index))
         .route("/crypto/encrypt", axum::routing::post(routes::crypto::encrypt))
         .route("/crypto/decrypt", axum::routing::post(routes::crypto::decrypt))

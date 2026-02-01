@@ -1,9 +1,12 @@
 use askama::Template;
 use axum::{
-    extract::Form,
+    extract::{Form, State},
     response::{Html, IntoResponse},
 };
 use serde::Deserialize;
+use tower_sessions::Session;
+use crate::{AppState, db};
+use super::auth;
 
 #[derive(Template)]
 #[template(path = "crypto.html")]
@@ -40,9 +43,28 @@ pub async fn index() -> impl IntoResponse {
     Html(template.render().unwrap())
 }
 
-pub async fn encrypt(Form(form): Form<EncryptForm>) -> impl IntoResponse {
+pub async fn encrypt(
+    State(state): State<AppState>,
+    session: Session,
+    Form(form): Form<EncryptForm>,
+) -> impl IntoResponse {
+    let username = auth::get_username(&session).await.unwrap_or_else(|| "unknown".to_string());
+    let user = db::get_user_by_username(&state.db, &username).await.ok().flatten();
+
     match encrypt_string(&form.plaintext, &form.password) {
         Ok(encrypted) => {
+            // 監査ログに記録
+            let _ = db::create_audit_log(
+                &state.db,
+                user.as_ref().map(|u| u.id),
+                &username,
+                "encrypt",
+                Some("/crypto/encrypt"),
+                Some(&format!("Encrypted text (length: {})", form.plaintext.len())),
+                None,
+                None,
+            ).await;
+
             let template = CryptoTemplate {
                 encrypted_text: encrypted,
                 decrypted_text: String::new(),
@@ -54,6 +76,18 @@ pub async fn encrypt(Form(form): Form<EncryptForm>) -> impl IntoResponse {
             Html(template.render().unwrap())
         }
         Err(e) => {
+            // エラーも記録
+            let _ = db::create_audit_log(
+                &state.db,
+                user.as_ref().map(|u| u.id),
+                &username,
+                "encrypt_failed",
+                Some("/crypto/encrypt"),
+                Some(&format!("Encryption failed: {}", e)),
+                None,
+                None,
+            ).await;
+
             let template = CryptoTemplate {
                 encrypted_text: String::new(),
                 decrypted_text: String::new(),
@@ -67,9 +101,28 @@ pub async fn encrypt(Form(form): Form<EncryptForm>) -> impl IntoResponse {
     }
 }
 
-pub async fn decrypt(Form(form): Form<DecryptForm>) -> impl IntoResponse {
+pub async fn decrypt(
+    State(state): State<AppState>,
+    session: Session,
+    Form(form): Form<DecryptForm>,
+) -> impl IntoResponse {
+    let username = auth::get_username(&session).await.unwrap_or_else(|| "unknown".to_string());
+    let user = db::get_user_by_username(&state.db, &username).await.ok().flatten();
+
     match decrypt_string(&form.ciphertext, &form.password) {
         Ok(decrypted) => {
+            // 監査ログに記録
+            let _ = db::create_audit_log(
+                &state.db,
+                user.as_ref().map(|u| u.id),
+                &username,
+                "decrypt",
+                Some("/crypto/decrypt"),
+                Some(&format!("Decrypted text (length: {})", decrypted.len())),
+                None,
+                None,
+            ).await;
+
             let template = CryptoTemplate {
                 encrypted_text: String::new(),
                 decrypted_text: decrypted,
@@ -81,6 +134,18 @@ pub async fn decrypt(Form(form): Form<DecryptForm>) -> impl IntoResponse {
             Html(template.render().unwrap())
         }
         Err(e) => {
+            // エラーも記録
+            let _ = db::create_audit_log(
+                &state.db,
+                user.as_ref().map(|u| u.id),
+                &username,
+                "decrypt_failed",
+                Some("/crypto/decrypt"),
+                Some(&format!("Decryption failed: {}", e)),
+                None,
+                None,
+            ).await;
+
             let template = CryptoTemplate {
                 encrypted_text: String::new(),
                 decrypted_text: String::new(),

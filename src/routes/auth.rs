@@ -61,15 +61,57 @@ pub async fn login(
             .insert(SESSION_USER_KEY, &form.username)
             .await
             .unwrap();
+
+        // 監査ログに記録
+        let _ = db::create_audit_log(
+            &state.db,
+            Some(user.id),
+            &form.username,
+            "login",
+            None,
+            Some("User logged in successfully"),
+            None,
+            None,
+        ).await;
+
         Ok(Redirect::to("/"))
     } else {
+        // ログイン失敗も記録
+        let _ = db::create_audit_log(
+            &state.db,
+            None,
+            &form.username,
+            "login_failed",
+            None,
+            Some("Failed login attempt"),
+            None,
+            None,
+        ).await;
+
         Err(LoginTemplate {
             error: Some("ユーザー名またはパスワードが間違っています".into()),
         })
     }
 }
 
-pub async fn logout(session: Session) -> Redirect {
+pub async fn logout(State(state): State<AppState>, session: Session) -> Redirect {
+    // ログアウト前にユーザー名を取得
+    if let Some(username) = get_username(&session).await {
+        if let Ok(Some(user)) = db::get_user_by_username(&state.db, &username).await {
+            // 監査ログに記録
+            let _ = db::create_audit_log(
+                &state.db,
+                Some(user.id),
+                &username,
+                "logout",
+                None,
+                Some("User logged out"),
+                None,
+                None,
+            ).await;
+        }
+    }
+
     session.delete().await.unwrap();
     Redirect::to("/login")
 }
@@ -80,4 +122,11 @@ pub async fn is_authenticated(session: &Session) -> bool {
         .await
         .unwrap_or(None)
         .is_some()
+}
+
+pub async fn get_username(session: &Session) -> Option<String> {
+    session
+        .get::<String>(SESSION_USER_KEY)
+        .await
+        .unwrap_or(None)
 }

@@ -13,6 +13,7 @@ argon2 = "0.5.3"
 askama = "0.15.1"
 askama_web = { version = "0.15.1", features = ["axum-0.8"] }
 axum = "0.8.8"
+chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15.7"
 futures = "0.3"
 password-hash = "0.5.0"

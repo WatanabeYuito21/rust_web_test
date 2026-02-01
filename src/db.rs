@@ -1,11 +1,25 @@
 use sqlx::{MySqlPool, FromRow};
 use serde::Serialize;
+use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone, FromRow, Serialize)]
 pub struct User {
     pub id: i32,
     pub username: String,
     pub password_hash: String,
+}
+
+#[derive(Debug, Clone, FromRow, Serialize)]
+pub struct AuditLog {
+    pub id: i32,
+    pub user_id: Option<i32>,
+    pub username: String,
+    pub action: String,
+    pub resource: Option<String>,
+    pub details: Option<String>,
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 
 pub async fn create_pool(database_url: &str) -> Result<MySqlPool, sqlx::Error> {
@@ -51,4 +65,53 @@ pub async fn list_users(pool: &MySqlPool) -> Result<Vec<User>, sqlx::Error> {
     .await?;
 
     Ok(users)
+}
+
+pub async fn create_audit_log(
+    pool: &MySqlPool,
+    user_id: Option<i32>,
+    username: &str,
+    action: &str,
+    resource: Option<&str>,
+    details: Option<&str>,
+    ip_address: Option<&str>,
+    user_agent: Option<&str>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO audit_logs (user_id, username, action, resource, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    )
+    .bind(user_id)
+    .bind(username)
+    .bind(action)
+    .bind(resource)
+    .bind(details)
+    .bind(ip_address)
+    .bind(user_agent)
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn list_audit_logs(pool: &MySqlPool, limit: i64) -> Result<Vec<AuditLog>, sqlx::Error> {
+    let logs = sqlx::query_as::<_, AuditLog>(
+        "SELECT id, user_id, username, action, resource, details, ip_address, user_agent, created_at FROM audit_logs ORDER BY created_at DESC LIMIT ?"
+    )
+    .bind(limit)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(logs)
+}
+
+pub async fn list_audit_logs_by_user(pool: &MySqlPool, username: &str, limit: i64) -> Result<Vec<AuditLog>, sqlx::Error> {
+    let logs = sqlx::query_as::<_, AuditLog>(
+        "SELECT id, user_id, username, action, resource, details, ip_address, user_agent, created_at FROM audit_logs WHERE username = ? ORDER BY created_at DESC LIMIT ?"
+    )
+    .bind(username)
+    .bind(limit)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(logs)
 }
