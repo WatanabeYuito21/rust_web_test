@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}監査ログ - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>監査ログ</h1>
+
+    <div class="audit-logs-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ユーザー名</th>
+                    <th>アクション</th>
+                    <th>リソース</th>
+                    <th>詳細</th>
+                    <th>IPアドレス</th>
+                    <th>日時</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="black-char">{{ log.id }}</td>
+                    <td class="black-char">{{ log.username }}</td>
+                    <td><span class="action-badge action-{{ log.action }}">{{ log.action }}</span></td>
+                    <td class="black-char">{{ log.resource }}</td>
+                    <td class="black-char">{{ log.details }}</td>
+                    <td class="black-char">{{ log.ip_address }}</td>
+                    <td class="black-char">{{ log.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if logs.is_empty() %}
+    <p class="no-logs">監査ログはまだありません。</p>
+    {% endif %}
+
+    <div class="info-box">
+        <h3>監査ログについて</h3>
+        <p>このページでは、ユーザーの操作履歴やセキュリティイベントを確認できます。</p>
+        <ul>
+            <li><strong>login</strong>: ログイン成功</li>
+            <li><strong>login_failed</strong>: ログイン失敗</li>
+            <li><strong>logout</strong>: ログアウト</li>
+            <li><strong>encrypt</strong>: 暗号化実行</li>
+            <li><strong>decrypt</strong>: 復号化実行</li>
+        </ul>
+        <p>最新100件のログが表示されます。</p>
+    </div>
+</div>
+
+<style>
+.audit-logs-table {
+    margin: 20px 0;
+    overflow-x: auto;
+}
+
+.audit-logs-table table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.audit-logs-table th,
+.audit-logs-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.audit-logs-table th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+    color: #333;
+}
+
+.audit-logs-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+.action-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: bold;
+}
+
+.action-login {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.action-login_failed {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.action-logout {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.action-encrypt,
+.action-decrypt {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.action-encrypt_failed,
+.action-decrypt_failed {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.no-logs {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-style: italic;
+}
+
+
+</style>
+{% endblock %}

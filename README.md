@@ -14,6 +14,13 @@ Axumフレームワークを使用したRust製のウェブダッシュボード
 - **ユーザー一覧表示**: 登録されているユーザーの一覧を表示
 - **セッション管理**: tower-sessionsによる安全なセッション管理
 
+### セキュリティ・監査機能
+- **監査ログ/操作ログ**:
+  - ユーザーの操作履歴を自動記録
+  - ログイン/ログアウト、暗号化/復号化などの重要操作を追跡
+  - セキュリティ監視とトラブルシューティングに活用
+  - 最新100件のログを表示
+
 ### ツール機能
 - **暗号化/復号化ツール**:
   - AES-256-GCMアルゴリズムを使用した強力な暗号化
@@ -83,6 +90,7 @@ USE rust_dashboard;
 
 -- マイグレーションSQLを実行
 SOURCE migrations/001_create_users_table.sql;
+SOURCE migrations/002_create_audit_logs_table.sql;
 ```
 
 ### 3. 環境変数の設定
@@ -144,7 +152,8 @@ cargo run --bin hash
 ├── Cargo.toml                      # プロジェクト設定と依存関係
 ├── .env                            # 環境変数設定（自分で作成）
 ├── migrations/                     # データベースマイグレーション
-│   └── 001_create_users_table.sql # ユーザーテーブル作成SQL
+│   ├── 001_create_users_table.sql # ユーザーテーブル作成SQL
+│   └── 002_create_audit_logs_table.sql # 監査ログテーブル作成SQL
 ├── src/
 │   ├── main.rs                     # アプリケーションのエントリーポイント
 │   ├── lib.rs                      # ライブラリのエントリーポイント
@@ -155,6 +164,7 @@ cargo run --bin hash
 │   └── routes/                     # ルートハンドラ
 │       ├── mod.rs                  # ルートモジュール定義
 │       ├── auth.rs                 # 認証機能（ログイン/ログアウト）
+│       ├── audit.rs                # 監査ログ表示
 │       ├── home.rs                 # ホームページとアバウトページ
 │       ├── sysinfo.rs              # システム情報表示
 │       ├── time.rs                 # 現在時刻表示
@@ -167,6 +177,7 @@ cargo run --bin hash
     ├── index.html                  # ホームページ
     ├── about.html                  # アバウトページ
     ├── login.html                  # ログインページ
+    ├── audit.html                  # 監査ログページ
     ├── sysinfo.html                # システム情報ページ
     ├── users.html                  # ユーザー一覧ページ
     ├── crypto.html                 # 暗号化/復号化ページ
@@ -184,6 +195,7 @@ cargo run --bin hash
 | `/sysinfo` | GET | システム情報を表示 | 必要 |
 | `/sysinfo/live` | GET | システム情報のリアルタイム更新（SSE） | 必要 |
 | `/users` | GET | 登録されているユーザーの一覧を表示 | 必要 |
+| `/audit` | GET | 監査ログを表示（最新100件） | 必要 |
 | `/crypto` | GET | 暗号化/復号化ツールページ | 必要 |
 | `/crypto/encrypt` | POST | テキストを暗号化 | 必要 |
 | `/crypto/decrypt` | POST | テキストを復号化 | 必要 |
@@ -217,6 +229,7 @@ curl -X POST http://localhost:3000/crypto/decrypt \
 - **セッション管理**: tower-sessionsによる安全なセッション管理
 - **認証保護**: ログインページ以外のすべてのページで認証が必要
 - **暗号化**: AES-256-GCMによる強力な暗号化とArgon2によるキー導出
+- **監査ログ**: ユーザーの操作履歴を記録し、セキュリティ監視とコンプライアンス対応を支援
 
 ## 開発
 
