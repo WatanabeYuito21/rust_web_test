@@ -2,11 +2,61 @@ use sqlx::{MySqlPool, FromRow};
 use serde::Serialize;
 use chrono::{DateTime, Utc};
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum Role {
+    Admin,
+    User,
+    Viewer,
+}
+
+impl Role {
+    pub fn from_str(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "admin" => Role::Admin,
+            "user" => Role::User,
+            "viewer" => Role::Viewer,
+            _ => Role::User, // Default to User for unknown values
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Role::Admin => "admin",
+            Role::User => "user",
+            Role::Viewer => "viewer",
+        }
+    }
+
+    pub fn can_access_sysinfo(&self) -> bool {
+        matches!(self, Role::Admin | Role::User)
+    }
+
+    pub fn can_access_crypto(&self) -> bool {
+        matches!(self, Role::Admin | Role::User)
+    }
+
+    pub fn can_access_users(&self) -> bool {
+        matches!(self, Role::Admin)
+    }
+
+    pub fn can_access_audit(&self) -> bool {
+        matches!(self, Role::Admin)
+    }
+}
+
 #[derive(Debug, Clone, FromRow, Serialize)]
 pub struct User {
     pub id: i32,
     pub username: String,
     pub password_hash: String,
+    #[sqlx(rename = "role")]
+    role_str: String,
+}
+
+impl User {
+    pub fn role(&self) -> Role {
+        Role::from_str(&self.role_str)
+    }
 }
 
 #[derive(Debug, Clone, FromRow, Serialize)]
@@ -28,7 +78,7 @@ pub async fn create_pool(database_url: &str) -> Result<MySqlPool, sqlx::Error> {
 
 pub async fn get_user_by_username(pool: &MySqlPool, username: &str) -> Result<Option<User>, sqlx::Error> {
     let user = sqlx::query_as::<_, User>(
-        "SELECT id, username, password_hash FROM users WHERE username = ?"
+        "SELECT id, username, password_hash, role FROM users WHERE username = ?"
     )
     .bind(username)
     .fetch_optional(pool)
@@ -39,7 +89,7 @@ pub async fn get_user_by_username(pool: &MySqlPool, username: &str) -> Result<Op
 
 pub async fn create_user(pool: &MySqlPool, username: &str, password_hash: &str) -> Result<User, sqlx::Error> {
     let result = sqlx::query(
-        "INSERT INTO users (username, password_hash) VALUES (?, ?)"
+        "INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'user')"
     )
     .bind(username)
     .bind(password_hash)
@@ -52,6 +102,7 @@ pub async fn create_user(pool: &MySqlPool, username: &str, password_hash: &str) 
         id: user_id,
         username: username.to_string(),
         password_hash: password_hash.to_string(),
+        role_str: "user".to_string(),
     };
 
     Ok(user)
@@ -59,7 +110,7 @@ pub async fn create_user(pool: &MySqlPool, username: &str, password_hash: &str) 
 
 pub async fn list_users(pool: &MySqlPool) -> Result<Vec<User>, sqlx::Error> {
     let users = sqlx::query_as::<_, User>(
-        "SELECT id, username, password_hash FROM users ORDER BY id"
+        "SELECT id, username, password_hash, role FROM users ORDER BY id"
     )
     .fetch_all(pool)
     .await?;

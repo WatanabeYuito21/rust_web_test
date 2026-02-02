@@ -130,3 +130,8 @@ pub async fn get_username(session: &Session) -> Option<String> {
         .await
         .unwrap_or(None)
 }
+
+pub async fn get_current_user(session: &Session, db: &sqlx::MySqlPool) -> Option<crate::db::User> {
+    let username = get_username(session).await?;
+    db::get_user_by_username(db, &username).await.ok().flatten()
+}

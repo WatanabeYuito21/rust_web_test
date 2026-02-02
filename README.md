@@ -15,10 +15,16 @@ Axumフレームワークを使用したRust製のウェブダッシュボード
 - **セッション管理**: tower-sessionsによる安全なセッション管理
 
 ### セキュリティ・監査機能
+- **ロールベースアクセス制御（RBAC）**:
+  - **Admin**: すべての機能にアクセス可能（ユーザー管理、監査ログ閲覧、システム情報など）
+  - **User**: 一般機能にアクセス可能（暗号化/復号化、システム情報閲覧など）
+  - **Viewer**: 読み取り専用（ホーム、アバウト、時刻表示のみ）
+  - 権限に応じた自動的なアクセス制御とログ記録
+
 - **監査ログ/操作ログ**:
   - ユーザーの操作履歴を自動記録
   - ログイン/ログアウト、暗号化/復号化などの重要操作を追跡
-  - セキュリティ監視とトラブルシューティングに活用
+  - 権限エラー（access_denied）も記録してセキュリティ監視を強化
   - 最新100件のログを表示
 
 ### ツール機能
@@ -91,6 +97,7 @@ USE rust_dashboard;
 -- マイグレーションSQLを実行
 SOURCE migrations/001_create_users_table.sql;
 SOURCE migrations/002_create_audit_logs_table.sql;
+SOURCE migrations/003_add_role_to_users.sql;
 ```
 
 ### 3. 環境変数の設定
@@ -153,7 +160,8 @@ cargo run --bin hash
 ├── .env                            # 環境変数設定（自分で作成）
 ├── migrations/                     # データベースマイグレーション
 │   ├── 001_create_users_table.sql # ユーザーテーブル作成SQL
-│   └── 002_create_audit_logs_table.sql # 監査ログテーブル作成SQL
+│   ├── 002_create_audit_logs_table.sql # 監査ログテーブル作成SQL
+│   └── 003_add_role_to_users.sql  # ユーザーロール追加SQL
 ├── src/
 │   ├── main.rs                     # アプリケーションのエントリーポイント
 │   ├── lib.rs                      # ライブラリのエントリーポイント
@@ -187,21 +195,21 @@ cargo run --bin hash
 
 ## APIエンドポイント一覧
 
-| パス | メソッド | 説明 | 認証 |
-|------|----------|------|------|
-| `/` | GET | ホームページ | 必要 |
-| `/about` | GET | アバウトページ | 必要 |
-| `/time` | GET | サーバーの現在時刻を表示 | 必要 |
-| `/sysinfo` | GET | システム情報を表示 | 必要 |
-| `/sysinfo/live` | GET | システム情報のリアルタイム更新（SSE） | 必要 |
-| `/users` | GET | 登録されているユーザーの一覧を表示 | 必要 |
-| `/audit` | GET | 監査ログを表示（最新100件） | 必要 |
-| `/crypto` | GET | 暗号化/復号化ツールページ | 必要 |
-| `/crypto/encrypt` | POST | テキストを暗号化 | 必要 |
-| `/crypto/decrypt` | POST | テキストを復号化 | 必要 |
-| `/login` | GET | ログインページを表示 | 不要 |
-| `/login` | POST | ログイン処理を実行 | 不要 |
-| `/logout` | GET | ログアウト処理を実行 | 必要 |
+| パス | メソッド | 説明 | 認証 | 必要な権限 |
+|------|----------|------|------|-----------|
+| `/` | GET | ホームページ | 必要 | すべて |
+| `/about` | GET | アバウトページ | 必要 | すべて |
+| `/time` | GET | サーバーの現在時刻を表示 | 必要 | すべて |
+| `/sysinfo` | GET | システム情報を表示 | 必要 | User以上 |
+| `/sysinfo/live` | GET | システム情報のリアルタイム更新（SSE） | 必要 | User以上 |
+| `/users` | GET | 登録されているユーザーの一覧を表示 | 必要 | Admin |
+| `/audit` | GET | 監査ログを表示（最新100件） | 必要 | Admin |
+| `/crypto` | GET | 暗号化/復号化ツールページ | 必要 | User以上 |
+| `/crypto/encrypt` | POST | テキストを暗号化 | 必要 | User以上 |
+| `/crypto/decrypt` | POST | テキストを復号化 | 必要 | User以上 |
+| `/login` | GET | ログインページを表示 | 不要 | なし |
+| `/login` | POST | ログイン処理を実行 | 不要 | なし |
+| `/logout` | GET | ログアウト処理を実行 | 必要 | すべて |
 
 ### 暗号化/復号化APIの使用方法
 
@@ -228,8 +236,23 @@ curl -X POST http://localhost:3000/crypto/decrypt \
 - **パスワードハッシュ化**: Argon2アルゴリズムを使用したセキュアなパスワードハッシュ化
 - **セッション管理**: tower-sessionsによる安全なセッション管理
 - **認証保護**: ログインページ以外のすべてのページで認証が必要
+- **ロールベースアクセス制御**: Admin/User/Viewerの3段階のロールによる細やかな権限管理
 - **暗号化**: AES-256-GCMによる強力な暗号化とArgon2によるキー導出
-- **監査ログ**: ユーザーの操作履歴を記録し、セキュリティ監視とコンプライアンス対応を支援
+- **監査ログ**: ユーザーの操作履歴と権限エラーを記録し、セキュリティ監視とコンプライアンス対応を支援
+
+### ユーザーロールについて
+
+新規ユーザーはデフォルトで「User」ロールで作成されます。管理者権限が必要な場合は、データベースで直接ロールを変更してください。
+
+```sql
+-- ユーザーを Admin に変更
+UPDATE users SET role = 'admin' WHERE username = 'your-username';
+
+-- ユーザーを Viewer に変更
+UPDATE users SET role = 'viewer' WHERE username = 'your-username';
+```
+
+既存の「admin」ユーザーは自動的に Admin ロールに設定されます。
 
 ## 開発
 

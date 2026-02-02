@@ -121,3 +121,28 @@ nav a:hover {
 .black-char {
     color: #000;
 }
+
+/* Role badge styles */
+.role-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.role-badge.role-admin {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.role-badge.role-user {
+    background: #3498db;
+    color: #fff;
+}
+
+.role-badge.role-viewer {
+    background: #95a5a6;
+    color: #fff;
+}
