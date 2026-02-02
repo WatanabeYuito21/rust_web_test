@@ -117,3 +117,7 @@ nav a:hover {
     color: #4fc3f7;
     font-family: 'Courier New', monospace;
 }
+
+.black-char {
+    color: #000;
+}

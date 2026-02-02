@@ -22,13 +22,13 @@
             <tbody>
                 {% for log in logs %}
                 <tr>
-                    <td>{{ log.id }}</td>
-                    <td>{{ log.username }}</td>
+                    <td class="black-char">{{ log.id }}</td>
+                    <td class="black-char">{{ log.username }}</td>
                     <td><span class="action-badge action-{{ log.action }}">{{ log.action }}</span></td>
-                    <td>{{ log.resource }}</td>
-                    <td>{{ log.details }}</td>
-                    <td>{{ log.ip_address }}</td>
-                    <td>{{ log.created_at }}</td>
+                    <td class="black-char">{{ log.resource }}</td>
+                    <td class="black-char">{{ log.details }}</td>
+                    <td class="black-char">{{ log.ip_address }}</td>
+                    <td class="black-char">{{ log.created_at }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -124,5 +124,7 @@
     color: #666;
     font-style: italic;
 }
+
+
 </style>
 {% endblock %}
