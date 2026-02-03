@@ -1,7 +1,7 @@
 use askama::Template;
 use axum::{
     extract::{Form, State},
-    response::{Html, IntoResponse},
+    response::{Html, IntoResponse, Redirect},
 };
 use serde::Deserialize;
 use tower_sessions::Session;
@@ -31,7 +31,33 @@ pub struct DecryptForm {
     password: String,
 }
 
-pub async fn index() -> impl IntoResponse {
+pub async fn index(
+    State(state): State<AppState>,
+    session: Session,
+) -> Result<impl IntoResponse, Redirect> {
+    // 現在のユーザーを取得
+    let current_user = match auth::get_current_user(&session, &state.db).await {
+        Some(user) => user,
+        None => return Err(Redirect::to("/login")),
+    };
+
+    // User以上の権限をチェック
+    if !current_user.role().can_access_crypto() {
+        // 権限エラーを監査ログに記録
+        let _ = db::create_audit_log(
+            &state.db,
+            Some(current_user.id),
+            &current_user.username,
+            "access_denied",
+            Some("/crypto"),
+            Some("Attempted to access crypto page without permission"),
+            None,
+            None,
+        ).await;
+
+        return Err(Redirect::to("/"));
+    }
+
     let template = CryptoTemplate {
         encrypted_text: String::new(),
         decrypted_text: String::new(),
@@ -40,24 +66,44 @@ pub async fn index() -> impl IntoResponse {
         show_decrypted: false,
         show_error: false,
     };
-    Html(template.render().unwrap())
+    Ok(Html(template.render().unwrap()))
 }
 
 pub async fn encrypt(
     State(state): State<AppState>,
     session: Session,
     Form(form): Form<EncryptForm>,
-) -> impl IntoResponse {
-    let username = auth::get_username(&session).await.unwrap_or_else(|| "unknown".to_string());
-    let user = db::get_user_by_username(&state.db, &username).await.ok().flatten();
+) -> Result<impl IntoResponse, Redirect> {
+    // 現在のユーザーを取得
+    let current_user = match auth::get_current_user(&session, &state.db).await {
+        Some(user) => user,
+        None => return Err(Redirect::to("/login")),
+    };
 
-    match encrypt_string(&form.plaintext, &form.password) {
+    // User以上の権限をチェック
+    if !current_user.role().can_access_crypto() {
+        // 権限エラーを監査ログに記録
+        let _ = db::create_audit_log(
+            &state.db,
+            Some(current_user.id),
+            &current_user.username,
+            "access_denied",
+            Some("/crypto/encrypt"),
+            Some("Attempted to encrypt without permission"),
+            None,
+            None,
+        ).await;
+
+        return Err(Redirect::to("/"));
+    }
+
+    Ok(match encrypt_string(&form.plaintext, &form.password) {
         Ok(encrypted) => {
             // 監査ログに記録
             let _ = db::create_audit_log(
                 &state.db,
-                user.as_ref().map(|u| u.id),
-                &username,
+                Some(current_user.id),
+                &current_user.username,
                 "encrypt",
                 Some("/crypto/encrypt"),
                 Some(&format!("Encrypted text (length: {})", form.plaintext.len())),
@@ -79,8 +125,8 @@ pub async fn encrypt(
             // エラーも記録
             let _ = db::create_audit_log(
                 &state.db,
-                user.as_ref().map(|u| u.id),
-                &username,
+                Some(current_user.id),
+                &current_user.username,
                 "encrypt_failed",
                 Some("/crypto/encrypt"),
                 Some(&format!("Encryption failed: {}", e)),
@@ -98,24 +144,44 @@ pub async fn encrypt(
             };
             Html(template.render().unwrap())
         }
-    }
+    })
 }
 
 pub async fn decrypt(
     State(state): State<AppState>,
     session: Session,
     Form(form): Form<DecryptForm>,
-) -> impl IntoResponse {
-    let username = auth::get_username(&session).await.unwrap_or_else(|| "unknown".to_string());
-    let user = db::get_user_by_username(&state.db, &username).await.ok().flatten();
+) -> Result<impl IntoResponse, Redirect> {
+    // 現在のユーザーを取得
+    let current_user = match auth::get_current_user(&session, &state.db).await {
+        Some(user) => user,
+        None => return Err(Redirect::to("/login")),
+    };
 
-    match decrypt_string(&form.ciphertext, &form.password) {
+    // User以上の権限をチェック
+    if !current_user.role().can_access_crypto() {
+        // 権限エラーを監査ログに記録
+        let _ = db::create_audit_log(
+            &state.db,
+            Some(current_user.id),
+            &current_user.username,
+            "access_denied",
+            Some("/crypto/decrypt"),
+            Some("Attempted to decrypt without permission"),
+            None,
+            None,
+        ).await;
+
+        return Err(Redirect::to("/"));
+    }
+
+    Ok(match decrypt_string(&form.ciphertext, &form.password) {
         Ok(decrypted) => {
             // 監査ログに記録
             let _ = db::create_audit_log(
                 &state.db,
-                user.as_ref().map(|u| u.id),
-                &username,
+                Some(current_user.id),
+                &current_user.username,
                 "decrypt",
                 Some("/crypto/decrypt"),
                 Some(&format!("Decrypted text (length: {})", decrypted.len())),
@@ -137,8 +203,8 @@ pub async fn decrypt(
             // エラーも記録
             let _ = db::create_audit_log(
                 &state.db,
-                user.as_ref().map(|u| u.id),
-                &username,
+                Some(current_user.id),
+                &current_user.username,
                 "decrypt_failed",
                 Some("/crypto/decrypt"),
                 Some(&format!("Decryption failed: {}", e)),
@@ -156,7 +222,7 @@ pub async fn decrypt(
             };
             Html(template.render().unwrap())
         }
-    }
+    })
 }
 
 // encript_toolの機能を使用した暗号化関数

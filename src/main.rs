@@ -24,9 +24,13 @@ async fn auth_middleware(
         return Ok(next.run(request).await);
     }
 
-    if routes::auth::is_authenticated(&session).await {
+    let is_auth = routes::auth::is_authenticated(&session).await;
+    eprintln!("認証チェック: path={}, authenticated={}", path, is_auth);
+
+    if is_auth {
         Ok(next.run(request).await)
     } else {
+        eprintln!("未認証のため /login にリダイレクト");
         Err(Redirect::to("/login"))
     }
 }
@@ -48,7 +52,12 @@ async fn main() {
     };
 
     let session_store = MemoryStore::default();
-    let session_layer = SessionManagerLayer::new(session_store);
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false)  // HTTP でも動作するように設定（本番環境では true に）
+        .with_same_site(tower_sessions::cookie::SameSite::Lax)
+        .with_expiry(tower_sessions::Expiry::OnInactivity(
+            tower_sessions::cookie::time::Duration::hours(24)
+        ));
 
     let app = Router::new()
         .route("/", get(routes::home::index))

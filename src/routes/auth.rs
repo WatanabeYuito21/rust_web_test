@@ -57,10 +57,15 @@ pub async fn login(
         .unwrap_or(false);
 
     if is_valid {
-        session
-            .insert(SESSION_USER_KEY, &form.username)
-            .await
-            .unwrap();
+        // セッションに保存
+        if let Err(e) = session.insert(SESSION_USER_KEY, &form.username).await {
+            eprintln!("セッション保存エラー: {:?}", e);
+            return Err(LoginTemplate {
+                error: Some("セッションエラーが発生しました".into()),
+            });
+        }
+
+        eprintln!("ログイン成功: {}", form.username);
 
         // 監査ログに記録
         let _ = db::create_audit_log(
@@ -76,6 +81,7 @@ pub async fn login(
 
         Ok(Redirect::to("/"))
     } else {
+        eprintln!("ログイン失敗: {} (パスワード不一致)", form.username);
         // ログイン失敗も記録
         let _ = db::create_audit_log(
             &state.db,
@@ -129,4 +135,9 @@ pub async fn get_username(session: &Session) -> Option<String> {
         .get::<String>(SESSION_USER_KEY)
         .await
         .unwrap_or(None)
+}
+
+pub async fn get_current_user(session: &Session, db: &sqlx::MySqlPool) -> Option<crate::db::User> {
+    let username = get_username(session).await?;
+    db::get_user_by_username(db, &username).await.ok().flatten()
 }

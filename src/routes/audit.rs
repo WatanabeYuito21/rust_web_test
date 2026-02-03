@@ -1,7 +1,9 @@
 use askama::Template;
-use axum::{extract::State, response::Html};
+use axum::{extract::State, response::{Html, Redirect, IntoResponse}};
 use chrono::{DateTime, Local};
+use tower_sessions::Session;
 use crate::{AppState, db};
+use crate::routes::auth;
 
 #[derive(Template)]
 #[template(path = "audit.html")]
@@ -35,10 +37,36 @@ impl From<db::AuditLog> for AuditLogDisplay {
     }
 }
 
-pub async fn list_audit_logs(State(state): State<AppState>) -> Result<Html<String>, String> {
+pub async fn list_audit_logs(
+    State(state): State<AppState>,
+    session: Session,
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    // 現在のユーザーを取得
+    let current_user = match auth::get_current_user(&session, &state.db).await {
+        Some(user) => user,
+        None => return Err(Redirect::to("/login")),
+    };
+
+    // Admin権限をチェック
+    if !current_user.role().can_access_audit() {
+        // 権限エラーを監査ログに記録
+        let _ = db::create_audit_log(
+            &state.db,
+            Some(current_user.id),
+            &current_user.username,
+            "access_denied",
+            Some("/audit"),
+            Some("Attempted to access audit logs without permission"),
+            None,
+            None,
+        ).await;
+
+        return Err(Redirect::to("/"));
+    }
+
     let logs = db::list_audit_logs(&state.db, 100)
         .await
-        .map_err(|e| format!("データベースエラー: {}", e))?;
+        .map_err(|_| Redirect::to("/"))?;
 
     let logs_display: Vec<AuditLogDisplay> = logs
         .into_iter()
@@ -51,6 +79,6 @@ pub async fn list_audit_logs(State(state): State<AppState>) -> Result<Html<Strin
 
     match template.render() {
         Ok(html) => Ok(Html(html)),
-        Err(e) => Err(format!("テンプレートレンダリングエラー: {}", e)),
+        Err(_) => Err(Redirect::to("/")),
     }
 }
